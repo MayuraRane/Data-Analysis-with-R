@@ -1,0 +1,387 @@
+---
+title: "Data Analysis on Superstore"
+author: "Mayura Rane"
+output: html_document
+
+---
+<style
+.nav-tabs>li>a:hover, .nav-tabs>li>a:focus, .nav-tabs>li.active>a, .nav-tabs>li.active>a:hover, .nav-tabs>li.active>a:focus, .nav-tabs .open>a, .nav-tabs .open>a:hover, .nav-tabs .open>a:focus {
+    padding-bottom: 16px;
+    margin-top: 0;
+}
+ .nav-tabs>li.active>a, .nav-tabs>li.active>a:hover, .nav-tabs>li.active>a:focus {
+    color: #555555;
+    background-color: #ffffff;
+    border: 1px solid #e7e7e7;
+    border-bottom-color: transparent;
+    cursor: default;
+}
+
+.tabset{
+  font-family: 'inherit';
+  padding: 10px;
+}
+
+.title {
+  font-family: 'inherit';
+
+
+}
+</style>
+
+## {.tabset}
+
+### __Introduction__
+
+The goal of our project is to use data analytics to improve retailer (national grocery chain named Regork) efficiency in purchasing and marketing by means of better understanding customer habits and establishing a long-term relationships with them. We are analyzing the data from the Complete Journey Dataset. With this dataset, the question that we want to find an answer to is which customer is buying what types of products and from which department, as well as the demographics (age-group) the customer belong, to better understand their shopping trends and improve sales.
+
+
+
+The objective of this project is to explore the Complete Journey dataset and answers some interesting questions related to demographics and sales as per department.
+Our Business problem here is to analyze the sales for demographic (age-group) with respect to department.
+We are focussing on age groups that are having fewer sales and then deep dive into why their sales are less and which departments are less consumed by that particular age group. We also tried to analyze the coupons redeemed by different age groups and tried to tie them down to our main goal of enhancing the Regork business with the help of marketing.
+
+We can use transaction and customer data to find important and useful insights which can help the business grow and improve it's strategies. It can be used to answer questions like:
+
+* What departments are bringing the most and least sales?
+* What is the general trend of age groups spending ?
+* Which demographic group is spending more on which department products?
+* How many coupons are redeemed by customers based on the department?
+
+<hr>
+
+
+### __Packages Required__
+
+Following packages were used:
+
+
+* __Knitr:__ Used to display an aligned table on the screen
+* __Tidyverse:__ Used to tidy data
+* __Lubridate:__ Used to manipulate date-time 
+* __Treemap:__ Visualize hierarchical data using nested rectangles
+* __Dplyr:__ Used for data manipulation
+* __Ggplot2:__ Used to plot charts
+* __Plotly:__ Used to plot interactive charts
+
+
+```{r, warning = FALSE, message=FALSE}
+library(tidyverse)
+library(completejourney)
+library(dplyr)
+library(lubridate)
+library(treemap)
+library(DT)
+```
+
+### __Data Preparation__
+
+This sections contains all the procedures followed in getting the data analysis ready. Each step has been explained and the codes have been given.
+
+#### {.tabset}
+
+##### Data Import
+
+We are using the Complete Journey Study dataset for this analysis. The data represents grocery store shopping transactions over one year from a group of 2,469 households who are frequent shoppers at a retailer. It contains all of each household’s purchases, not just those from a limited number of categories. For certain households, demographic information as well as direct marketing contact history are included.
+ 
+Data Import Code:
+```{r}
+library(completejourney)
+transactions <- as.data.frame(get_transactions())
+
+```
+
+__Details about the tables used:__
+```{r}
+colnames(transactions)
+colnames(products)
+colnames(demographics)
+colnames(coupons)
+colnames(coupon_redemptions)
+```
+
+##### Data Preview
+
+```{r}
+glimpse(transactions)
+glimpse(products)
+glimpse(demographics)
+glimpse(coupons)
+glimpse(coupon_redemptions)
+
+```
+
+##### Data Description
+```{r, message=FALSE,  echo=FALSE}
+data1 <- tribble(
+  ~"Variable",                                ~"Description",
+  "household_id","Estimated age range",
+  "income","Household income",
+  "home_ownership","Homeowner, renter, etc.",
+  "marital_status","Marital status (Married, Single, Unknown)",
+  "household_size","Size of household up to 5+",
+  "household_comp","Household composition",
+  "kid_count",  "Number of children present up to 3+"
+)
+knitr::kable((data1), booktabs = TRUE,
+caption = 'demographics')
+
+
+data2 <- tribble(
+  ~"Variable",                                ~"Description",
+  "household_id",                        "Estimated age range",
+  "basket_id",        "Uniquely identifies each purchase occasion",
+  "product_id",  "	Uniquely identifies each product",
+  "quantity",  "Number of the product purchased during the trip",
+  "retail_disc",  "Discount applied due to the retailer’s loyalty card program",
+  "coupon_disc",  "Discount applied due to a manufacturer coupon",
+  "coupon_match_disc",  "Discount applied due to retailer’s match of manufacturer coupon",
+  "week", "Week of the transaction; Ranges 1-53",
+  "transaction_timestamp",  "Date and time of day when the transaction occurred"
+)
+knitr::kable((data2), booktabs = TRUE,
+caption = 'transactions')
+
+data3 <- tribble(
+  ~"Variable",                                ~"Description",
+  "product_id",  "	Uniquely identifies each product",
+  "manufacturer_id",  "Uniquely identifies each manufacturer",
+  "department",  "Groups similar products together",
+  "brand",  "Indicates private or national label brand",
+  "product_category",  "Groups similar products together at lower level",
+  "product_type", "Groups similar products together at lowest level",
+  "package_size",  "Indicates package size (not available for all products)"
+)
+knitr::kable((data3), booktabs = TRUE,
+caption = 'products')
+
+data4 <- tribble(
+  ~"Variable",                                ~"Description",
+  "household_id",                        "Estimated age range",
+  "coupon_upc",  "Uniquely identifies each coupon (unique to household and campaign)",
+  "campaign_id",  "Uniquely identifies each campaign",
+  "redemption_date",  "Date when the coupon was redeemed",
+)
+knitr::kable((data4), booktabs = TRUE,
+caption = 'coupons')
+
+data5 <- tribble(
+  ~"Variable",                                ~"Description",
+  "coupon_upc",  "Uniquely identifies each coupon (unique to household and campaign)",
+  "product_id",  "Uniquely identifies each product",
+  "campaign_id",  "Uniquely identifies each campaign",
+)
+knitr::kable((data4), booktabs = TRUE,
+caption = 'coupon redemptions')
+```
+
+### __Exploratory Data Analysis__
+
+#### {.tabset}
+
+##### Sales Analysis
+
+The above graph uses transactions & demographics data from the complete journey data set.
+We have tried to showcase a quantitative relation between different age-groups & their total sales value.
+To display the quantitative relationship we used a tree map plot. From the tree map plot it can be analyzed that age-group with more total sales value has been applied with a darker palette.
+Hence, according to our analysis, the age-group of 19-24 is having lighter palette scheme means their contribution to total sales value is very less compared to other age-groups
+
+```{r, echo=FALSE}
+transactions %>%
+  inner_join(demographics, by = "household_id") %>%
+  group_by(age) %>%
+  summarise(total_sales = sum(sales_value)) %>%
+  arrange(desc(total_sales)) %>%
+  treemap(total_sales, index = c("age") ,vSize = "total_sales",type = "index", palette = "Reds",title = "Age Group vs Total Sales",fontsize.title = 14 , fontsize.labels = 15)
+```
+
+
+Based on our observations in the first graph, we decided to deep-dive more into age-groups category to check why the total sales from a particular age-group is less compared to other age-groups. First, we extracted the number of households count for each age-group. In that we observed that three age-groups: 19-24, 55-64 & 65+
+is having nearly same household counts.
+```{r}
+demographics %>% 
+  group_by(age) %>%
+  summarise(total_households = n())
+```
+
+We identified three departments: NUTRITION, DELI & PASTRY where the contribution to total sales value from each age-group was having comparable quantities.
+```{r, echo=FALSE, message=FALSE}
+library(DT)
+
+transactions %>%
+  inner_join(products, by = "product_id") %>%
+  inner_join(demographics, by = "household_id") %>%
+  group_by(age , department) %>%
+  summarise(ttsles = sum(sales_value)) %>%
+  filter(age == "19-24") %>%
+  arrange(ttsles , decreasing = FALSE) %>%
+  print(n = 27)
+  
+transactions %>%
+  inner_join(products, by = "product_id") %>%
+  inner_join(demographics, by = "household_id") %>%
+  group_by(age , department) %>%
+  summarise(ttsles = sum(sales_value)) %>%
+  filter(age == "45-54") %>%
+  arrange(ttsles , decreasing = FALSE) %>%
+  print(n = 27)
+
+transactions %>%
+  inner_join(products, by = "product_id") %>%
+  inner_join(demographics, by = "household_id") %>%
+  group_by(age , department) %>%
+  summarise(ttsles = sum(sales_value)) %>%
+  filter(age == "55-64") %>%
+  arrange(ttsles , decreasing = FALSE) %>%
+  print(n = 27)
+
+
+
+transactions %>%
+  inner_join(products, by = "product_id") %>%
+  inner_join(demographics, by = "household_id") %>%
+  group_by(age , department) %>%
+  summarise(ttsles = sum(sales_value)) %>%
+  filter(age == "65+") %>%
+  arrange(ttsles , decreasing = FALSE) %>%
+  print(n = 27)
+  
+transactions %>%
+  inner_join(products, by = "product_id") %>%
+  inner_join(demographics, by = "household_id") %>%
+  group_by(age , department) %>%
+  summarise(ttsles = sum(sales_value)) %>%
+  filter(age == "35-44") %>%
+  arrange(ttsles , decreasing = FALSE) %>%
+  print(n = 27)
+
+```
+
+Using this above observations we plotted column bar plot for three departments show casing total sales value per age-group
+
+```{r, echo=FALSE, message=FALSE}
+transactions %>%
+  inner_join(products, by = "product_id") %>%
+  inner_join(demographics, by = "household_id") %>%
+  group_by(age , department) %>%
+  summarise(ttsles = sum(sales_value)) %>%
+  filter(department %in% c("NUTRITION" , "PASTRY" , "DELI")) %>%
+  arrange(ttsles , decreasing = FALSE) %>%
+  ggplot(aes(x = age , y = ttsles , fill = department)) +
+  geom_col(position = 'dodge') +
+  scale_y_continuous(labels = scales::comma) +
+  scale_fill_brewer(palette = "Reds") +
+  labs(
+    title = "Age Group vs Total Sales Per Age Group For 3 Departments",
+    x = "Age Group",
+    y = "Total Sales Per Age Group For 3 Departments" ) +
+  guides(fill = guide_legend(title = "DEPARTMENTS"))
+```
+
+##### Department Analysis
+
+Using the observations in Graph 1 - Plot 2, we deep-dived & filtered only the three age-groups: 19-24, 55-64 & 65+ as these have nearly equal household counts.
+Hence, we plotted column bar plot to represent the difference and it is observed that even when household counts for three age-groups is nearly same still
+19-24 age-group contribution in three departments is less compared to other two. Thus, it can be concluded that age-group 19-24 is purchasing less from the three departments.
+
+
+```{r, echo=FALSE, message=FALSE}
+transactions %>%
+  inner_join(products, by = "product_id") %>%
+  inner_join(demographics, by = "household_id") %>%
+  group_by(age, department) %>%
+  filter(age %in% c("19-24" , "55-64" ,"65+")) %>%
+  summarise(ttsles = sum(sales_value)) %>%
+  filter(department %in% c("NUTRITION" , "PASTRY" , "DELI")) %>%
+  arrange(ttsles , decreasing = FALSE) %>%
+  ggplot(aes(x = age , y = ttsles , fill = department)) +
+  geom_col(position = 'dodge') +
+  scale_y_continuous(labels = scales::comma) +
+  scale_fill_brewer(palette = "Reds") +
+  labs(
+    title = "Age Group vs Total Sales Per Age Group For 3 Departments",
+    x = "Age Group",
+    y = "Total Sales" ) +
+  guides(fill = guide_legend(title = "DEPARTMENTS"))
+```
+
+##### Coupons Redeemed
+
+
+```{r, echo=FALSE, message=FALSE}
+library(DT)
+
+Coupons_used1 <- coupons %>% inner_join(coupon_redemptions)
+coup_prd1 <-  Coupons_used1 %>% inner_join(products, by = "product_id")
+Graph1 <- coup_prd1 %>%
+  group_by(department) %>%
+  summarise(Total_CouponsRedeemed = n()) %>%
+  arrange(desc(Total_CouponsRedeemed))
+
+datatable(Graph1, caption='Number of coupons redeemed per department')
+
+```
+
+
+The below graph uses coupons, coupon redemptions, product, and demographic tables to populate the data for Nutrition, Pastry, and Deli departments. The graph shows the number of coupons redeemed based on the age group.For each age group, we use the top five coupons upc which are being redeemed. 
+
+```{r, echo=FALSE, message=FALSE}
+
+library(tidyr)
+library(tidyverse)
+library(dplyr)
+library(completejourney)
+library(lubridate)
+library(ggplot2)
+
+
+'Coupons_used' <- coupons %>% inner_join(coupon_redemptions)
+'coup_prd' <-  Coupons_used %>%
+               inner_join(products, by = "product_id")
+
+
+
+'coup_prd' <- coup_prd %>%
+              filter(department %in% c( "NUTRITION" , "PASTRY" , "DELI"))
+  
+'FinalDataset' <- coup_prd %>% inner_join(demographics, by = "household_id")
+
+
+'Graph' <- FinalDataset %>%
+                   group_by(age) %>%
+                   count(coupon_upc) %>%
+                   top_n( n= 5) %>%
+                   arrange(desc(age))
+
+'Top_5Coup' <- FinalDataset %>% right_join(Graph)
+         
+'Coupon_Plot' <- ggplot(Top_5Coup, aes(age, fill = coupon_upc)) +
+                 scale_y_continuous(limits = c(0,15000))+
+  scale_fill_brewer(palette = "Reds")+
+                geom_bar() +
+  labs(title = "Coupon Redeemed Based on Age Group for Nutrition, Pastry ,Deli Department",
+       subtitle = "Based on Top 5 Coupon UPCs Redeemed",
+       x = "Age",
+       y = "Total Count of Coupons Redeemed")
+  
+plot(Coupon_Plot)
+```
+
+
+
+### __Summary__
+
+The above exercise helped us understand the complete journey dataset better. Now we have answers to some inetersting questions and are in a position to do follow-up and deep dive analysis. The following is the summary of the analysis:
+
+1. The sales for demographic (age-group) 19-24 has the least sales and 45-54 has the most sales.
+2. The age-groups 19-24, 55-64 & 65+were having nearly same household counts and hence when we compared their sales for few departments we got to know that 19-24 demographic group consume less nutrition.
+3. The departments Nutrition, Deli and Pastry where the contribution to total sales value from each age-group was having comparable quantities and when compared Nutrition was consumed less by age group 19-24.
+4. The coupons distributed within various departments gave us an insight that GROCERY department has redeemed most coupons whereas PHOTO & VIDEO was the least.
+5. The Top 5 coupons redeemed for departments Nutrition, Deli and Pastry in each age group signifies that 19-24 demographic group also redeem less coupons for those department.
+
+In short, our goal was to analyze the sales for different age groups and extract insights to help Regork business to grow by providing more coupons for departments which are having less sales in this case NUTRITION and create awareness about how nutrition is more important in our daily life with the help of marketing team, this will allow Regork to increase sales for those age groups and generate more revenue.
+
+
+
+
+
