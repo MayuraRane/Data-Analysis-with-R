@@ -68,7 +68,7 @@ In short, our goal was to analyze the sales for different age groups and extract
 
 ## Link
 
-- Live Site URL: [Superstore Analysis RPubs]([https://mayurarane.github.io/TinDog/](https://rpubs.com/mayurarane/superstore-analysis))
+- Live Site URL: [Superstore Analysis RPubs](https://rpubs.com/mayurarane/superstore-analysis)
 
 ## Acknowledgments
 
